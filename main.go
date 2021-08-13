@@ -56,11 +56,16 @@ func main() {
 		return
 	}
 	for _, channel := range channels {
-		channelPath := channelPathBase + "/" + channel.NameNormalized + "-" + channel.ID
+		channelName := channel.Name
+		if channelName == "" && channel.IsIM {
+			channelName = "im-" + channel.User
+		}
+
+		channelPath := channelPathBase + "/" + channelName + "-" + channel.ID
 		err = os.MkdirAll(channelPath, 0755)
 		writeJson(channelPath+"/info", channel)
 
-		fmt.Printf("  Fetching %s...", channel.Name)
+		fmt.Printf("  Fetching %s... ", channelName)
 		var messages []slack.Message
 		cursor := ""
 		for {
