@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 
 	"github.com/slack-go/slack"
 )
@@ -147,6 +148,39 @@ func main() {
 		}
 
 		file.Close()
+		fmt.Println("done")
+	}
+
+	fmt.Println("Fetching emojis... ")
+	emojis, err := api.GetEmoji()
+	if err != nil {
+		log.Fatalln("failed to fetch emojis:", err)
+		return
+	}
+	fmt.Println("got", len(emojis))
+
+	fmt.Println("Downloading emojis... ")
+	emojiPathBase := "emojis"
+	err = os.MkdirAll(emojiPathBase, 0755)
+	if err != nil {
+		log.Fatalln("failed to create emoji folder:", err)
+		return
+	}
+	for emoji, url := range emojis {
+		fmt.Print("  ", emoji, " ... ")
+
+		filePath := emojiPathBase + "/" + emoji + "." + path.Ext(url)
+		file, err := os.Create(filePath)
+		if err != nil {
+			fmt.Println("failed to create emoji file ", emoji, " :", err)
+			continue
+		}
+
+		err = api.GetFile(url, file)
+		if err != nil {
+			fmt.Println("failed to download emoji file ", emoji, " :", err)
+			continue
+		}
 		fmt.Println("done")
 	}
 }
