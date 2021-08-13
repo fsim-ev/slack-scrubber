@@ -77,18 +77,76 @@ func main() {
 				break
 			}
 		}
-
-		writeJson(channelPath+"/messages", messages)
+		fmt.Println("got", len(messages))
+		if len(messages) > 0 {
+			writeJson(channelPath+"/messages", messages)
+		}
 	}
-	/*
-		fmt.Print("Fetching files...")
-		files, _, err := api.GetFiles(slack.GetFilesParameters{})
+
+	fmt.Print("Fetching files... ")
+	var files []slack.File
+	page_num := 0
+	for {
+		files_chunk, page, err := api.GetFiles(slack.GetFilesParameters{Count: 500, ShowHidden: true, Page: page_num})
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		for _, file := range files {
-			fmt.Printf("File ID: %s, Name: %s :: %+v\n", file.ID, file.Name, file)
+
+		files = append(files, files_chunk...)
+		fmt.Printf("got %d [last ts %d].. ", len(files), files[len(files)-1].Timestamp.Time().Unix())
+		if page.Page != page.Pages {
+			page_num += 1
+		} else {
+			break
 		}
-	*/
+	}
+	fmt.Println("got", len(files))
+	writeJson("files", files)
+
+	fmt.Println("Downloading files... ")
+	filePathBase := "files"
+	err = os.MkdirAll(filePathBase, 0755)
+	if err != nil {
+		log.Fatalln("failed to create files folder:", err)
+		return
+	}
+	for _, file_meta := range files {
+		fmt.Print("  ", file_meta.Name, " ... ")
+
+		filePath := filePathBase + "/" + file_meta.Name
+		// check for existing
+		file_stat, err := os.Stat(filePath)
+		if err == nil {
+			if file_stat.Size() == int64(file_meta.Size) {
+				fmt.Println(" same file exists (skipping)")
+				continue
+			} else {
+				fileName := file_meta.Name[0:len(file_meta.Name)-len(file_meta.Filetype)-1] + "-" + file_meta.ID + "." + file_meta.Filetype
+				filePath = filePathBase + "/" + fileName
+				fmt.Print(" -> ", fileName, " ... ")
+
+				file_stat, err = os.Stat(filePath)
+				if err == nil && file_stat.Size() == int64(file_meta.Size) {
+					fmt.Println(" same file exists (skipping)")
+					continue
+				}
+			}
+		}
+
+		file, err := os.Create(filePath)
+		if err != nil {
+			fmt.Println("failed to create file ", file_meta.Name, " :", err)
+			continue
+		}
+
+		err = api.GetFile(file_meta.URLPrivateDownload, file)
+		if err != nil {
+			fmt.Println("failed to download file ", file_meta.Name, " :", err)
+			continue
+		}
+
+		file.Close()
+		fmt.Println("done")
+	}
 }
