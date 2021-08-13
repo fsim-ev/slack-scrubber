@@ -174,7 +174,7 @@ func main() {
 	for emoji, url := range emojis {
 		fmt.Print("  ", emoji, " ... ")
 
-		filePath := emojiPathBase + "/" + emoji + "." + path.Ext(url)
+		filePath := emojiPathBase + "/" + emoji + path.Ext(url)
 		file, err := os.Create(filePath)
 		if err != nil {
 			fmt.Println("failed to create emoji file ", emoji, " :", err)
