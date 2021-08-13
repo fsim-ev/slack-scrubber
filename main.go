@@ -32,25 +32,22 @@ func main() {
 
 	api := slack.New(token, slack.OptionDebug(false))
 
-	//api.GetEmoji()
-
-	fmt.Print("Fetching users...")
+	fmt.Print("Fetching users... ")
 	users, err := api.GetUsers()
 	if err != nil {
 		log.Fatalln("failed:", err)
 		return
 	}
-	fmt.Println("got ", len(users))
+	fmt.Println("got", len(users))
 	writeJson("users", users)
 
-	fmt.Print("Fetching conversations...")
+	fmt.Print("Fetching conversations... ")
 	channels, _, err := api.GetConversations(&slack.GetConversationsParameters{Limit: 500, Types: []string{"public_channel", "private_channel", "mpim", "im"}})
 	if err != nil {
 		log.Fatalln("failed:", err)
 		return
 	}
-
-	fmt.Println("got ", len(channels))
+	fmt.Println("got", len(channels))
 
 	channelPathBase := "channels"
 	if err != nil {
@@ -80,7 +77,6 @@ func main() {
 				break
 			}
 		}
-		fmt.Println("got ", len(messages))
 
 		writeJson(channelPath+"/messages", messages)
 	}
